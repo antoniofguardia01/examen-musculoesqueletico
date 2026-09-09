@@ -129,6 +129,19 @@
   .id-opt.incorrect{ border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
   @media (max-width:480px){ .id-options{ grid-template-columns:1fr; } }
 
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .mode-btn{ flex:1; text-align:center; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); cursor:pointer; font-weight:600; font-size:13px; color:var(--ink-soft); transition:all .12s; }
+  .mode-btn:hover{ border-color:var(--navy); }
+  .mode-btn.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .id-write-box{ display:flex; gap:10px; margin-top:4px; }
+  .id-write-input{ flex:1; font-family:'Inter',sans-serif; font-size:15px; padding:12px 14px; border-radius:8px; border:1.5px solid var(--line); background:var(--paper); color:var(--ink); }
+  .id-write-input:focus{ outline:none; border-color:var(--navy); }
+  .id-write-input.correct{ border-color:var(--good); background:var(--good-soft); color:var(--good); }
+  .id-write-input.incorrect{ border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
+  .id-write-check{ padding:12px 20px; border-radius:8px; border:none; font-weight:700; font-size:14px; cursor:pointer; background:var(--navy); color:#fff; }
+  .id-write-check:disabled{ opacity:.5; cursor:default; }
+  @media (max-width:480px){ .id-write-box{ flex-direction:column; } }
+
   .feedback{ margin-top:18px; padding:14px 16px; border-radius:8px; font-size:13.5px; line-height:1.55; display:none; }
   .feedback.show{display:block;}
   .feedback.ok{background:var(--good-soft); border:1px solid var(--good); color:#1E5C39;}
@@ -232,7 +245,12 @@
       <div class="stat streak"><div class="n" id="idStatStreak">0</div><div class="l">Racha</div></div>
     </div>
 
-    <div class="note-box">Estas imágenes son las guías de trabajo en blanco y negro (huesos y músculos numerados) — igual a como aparecen en tu taller formativo. Selecciona la respuesta, no la escribas.</div>
+    <div class="note-box">Estas imágenes son las guías de trabajo en blanco y negro (huesos y músculos numerados) — igual a como aparecen en tu taller formativo. Elige cómo quieres practicar: seleccionando la respuesta o escribiéndola.</div>
+
+    <div class="mode-toggle">
+      <div class="mode-btn active" id="idModeSelect" onclick="idSetMode('select')">🖱️ Selección múltiple</div>
+      <div class="mode-btn" id="idModeWrite" onclick="idSetMode('write')">✏️ Escribir respuesta</div>
+    </div>
 
     <div class="filter-toggle" id="idFilterToggle">
       <span>🎛️ Filtrar por diagrama</span>
@@ -1107,6 +1125,27 @@ let idFiltersSet = new Set(IDENTIFICACION_DIAGRAMS.map(d=>d.id));
 let idQueues = {};
 let idStats = {total:0, correct:0, streak:0};
 let idCurrent = null;
+let idMode = "select";
+
+function idSetMode(mode){
+  if(idMode === mode) return;
+  idMode = mode;
+  document.getElementById("idModeSelect").classList.toggle("active", mode==="select");
+  document.getElementById("idModeWrite").classList.toggle("active", mode==="write");
+  idRenderQuestion();
+}
+
+function idNormalize(s){
+  return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9\s]/g,"").trim().replace(/\s+/g," ");
+}
+function idAcceptableAnswers(name){
+  const set = new Set([idNormalize(name)]);
+  const withoutParen = name.replace(/\([^)]*\)/g,"").trim();
+  if(withoutParen) set.add(idNormalize(withoutParen));
+  const parenMatch = name.match(/\(([^)]+)\)/);
+  if(parenMatch) set.add(idNormalize(parenMatch[1]));
+  return set;
+}
 
 function idBuildFilterChips(){
   const box = document.getElementById("idDiagramChips");
@@ -1180,26 +1219,60 @@ function idRenderQuestion(){
   body.innerHTML = "";
 
   const p = document.createElement("div"); p.className = "prompt";
-  p.innerHTML = `<span class="instr">Observa el diagrama y selecciona la respuesta correcta.</span>¿Qué estructura corresponde al número ${point.n}?`;
+  p.innerHTML = idMode === "write"
+    ? `<span class="instr">Observa el diagrama y escribe el nombre de la estructura.</span>¿Qué estructura corresponde al número ${point.n}?`
+    : `<span class="instr">Observa el diagrama y selecciona la respuesta correcta.</span>¿Qué estructura corresponde al número ${point.n}?`;
   body.appendChild(p);
 
   const imgWrap = document.createElement("div"); imgWrap.className = "id-diagram-wrap";
   imgWrap.innerHTML = `<img src="${diagram.img}" alt="${diagram.label}"><div class="id-diagram-label">${diagram.label}</div>`;
   body.appendChild(imgWrap);
 
-  const uniqueNames = [...new Set(diagram.points.map(pt=>pt.name).filter(nm=>nm!==point.name))];
-  const distractors = shuffle(uniqueNames).slice(0,3);
-  const options = shuffle([point.name, ...distractors]);
+  if(idMode === "write"){
+    const wbox = document.createElement("div"); wbox.className = "id-write-box";
+    const input = document.createElement("input");
+    input.type = "text"; input.id = "idWriteInput"; input.className = "id-write-input";
+    input.placeholder = "Escribe el nombre de la estructura..."; input.autocomplete = "off"; input.autocapitalize = "off"; input.spellcheck = false;
+    input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); idCheckWrittenAnswer(); } });
+    const btn = document.createElement("button"); btn.className = "id-write-check"; btn.id = "idWriteCheckBtn"; btn.textContent = "Comprobar";
+    btn.onclick = idCheckWrittenAnswer;
+    wbox.appendChild(input); wbox.appendChild(btn);
+    body.appendChild(wbox);
+    teoAddFeedback(body);
+    setTimeout(()=>input.focus(), 30);
+  } else {
+    const uniqueNames = [...new Set(diagram.points.map(pt=>pt.name).filter(nm=>nm!==point.name))];
+    const distractors = shuffle(uniqueNames).slice(0,3);
+    const options = shuffle([point.name, ...distractors]);
 
-  const optBox = document.createElement("div"); optBox.className = "id-options"; optBox.id = "idOptionsBox";
-  options.forEach(name=>{
-    const div = document.createElement("div"); div.className = "id-opt"; div.dataset.name = name;
-    div.textContent = name;
-    div.onclick = ()=> idCheckAnswer(div, name, point.name);
-    optBox.appendChild(div);
-  });
-  body.appendChild(optBox);
-  teoAddFeedback(body); // reuse same feedback style/id pattern
+    const optBox = document.createElement("div"); optBox.className = "id-options"; optBox.id = "idOptionsBox";
+    options.forEach(name=>{
+      const div = document.createElement("div"); div.className = "id-opt"; div.dataset.name = name;
+      div.textContent = name;
+      div.onclick = ()=> idCheckAnswer(div, name, point.name);
+      optBox.appendChild(div);
+    });
+    body.appendChild(optBox);
+    teoAddFeedback(body); // reuse same feedback style/id pattern
+  }
+}
+
+function idCheckWrittenAnswer(){
+  if(!idCurrent || idCurrent.checked) return;
+  const input = document.getElementById("idWriteInput");
+  const typed = idNormalize(input.value);
+  if(!typed) return;
+  idCurrent.checked = true;
+  const correct = idCurrent.point.name;
+  const isCorrect = idAcceptableAnswers(correct).has(typed);
+  input.disabled = true;
+  document.getElementById("idWriteCheckBtn").disabled = true;
+  input.classList.add(isCorrect ? "correct" : "incorrect");
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback " + (isCorrect?"ok":"bad") + " show";
+  fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: ${correct}`;
+  idUpdateStats(isCorrect);
+  document.getElementById("idBtnNext").disabled = false;
 }
 
 function idCheckAnswer(div, chosen, correct){
