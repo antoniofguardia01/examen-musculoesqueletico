@@ -18,9 +18,11 @@
     --radius:10px;
   }
   *{box-sizing:border-box;}
-  body{ margin:0; background:var(--cream); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  body{ margin:0; background:radial-gradient(1200px 600px at 50% -10%, #FBF8EF 0%, var(--cream) 55%); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
   .wrap{ max-width:860px; margin:0 auto; padding:28px 20px 80px; }
 
+  .hero-banner{ margin-bottom:22px; border-radius:14px; overflow:hidden; border:1px solid var(--line); box-shadow:0 8px 28px -12px rgba(31,76,43,0.35); }
+  .hero-banner img{ display:block; width:100%; height:auto; }
   .masthead{ display:flex; align-items:center; gap:16px; border-bottom:3px solid var(--navy); padding-bottom:16px; margin-bottom:18px; }
   .seal{ width:54px;height:54px;flex:0 0 auto; }
   .masthead h1{ font-family:'Fraunces',serif; font-weight:700; font-size:24px; color:var(--navy-deep); margin:0 0 2px 0; letter-spacing:-0.01em; }
@@ -56,7 +58,7 @@
   .filter-empty-msg{ font-size:12px; color:var(--bad); font-style:italic; margin-bottom:8px; display:none; }
   .filter-empty-msg.show{ display:block; }
 
-  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 3px rgba(90,30,30,0.06), 0 8px 24px rgba(90,30,30,0.05); overflow:hidden; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 3px rgba(31,76,43,0.06), 0 8px 24px rgba(31,76,43,0.05); overflow:hidden; }
   .card-head{ background:var(--navy); color:#fff; padding:12px 22px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
   .card-head .tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; color:#EFDCC9; }
   .card-head .topic-badge{ font-size:10px; background:rgba(255,255,255,0.14); padding:3px 10px; border-radius:20px; color:#fff; }
@@ -157,6 +159,10 @@
 </head>
 <body>
 <div class="wrap">
+
+  <div class="hero-banner">
+    <img src="assets/header-banner.png" alt="Sistema Músculo-Esquelético" width="2400" height="1350">
+  </div>
 
   <div class="masthead">
     <svg class="seal" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
