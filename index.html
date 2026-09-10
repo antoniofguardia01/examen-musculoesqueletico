@@ -1431,9 +1431,10 @@ function idCheckWrittenAnswer(){
   input.classList.add(isCorrect ? "correct" : "incorrect");
   const fb = document.getElementById("feedback");
   fb.className = "feedback " + (isCorrect?"ok":"bad") + " show";
-  fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: ${correct}`;
+  fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: <b>${correct}</b>`;
   idUpdateStats(isCorrect);
   document.getElementById("idBtnNext").disabled = false;
+  setTimeout(()=>fb.scrollIntoView({behavior:"smooth", block:"nearest"}), 30);
 }
 
 function idCheckAnswer(div, chosen, correct){
@@ -1448,9 +1449,10 @@ function idCheckAnswer(div, chosen, correct){
   });
   const fb = document.getElementById("feedback");
   fb.className = "feedback " + (isCorrect?"ok":"bad") + " show";
-  fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: ${correct}`;
+  fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: <b>${correct}</b>`;
   idUpdateStats(isCorrect);
   document.getElementById("idBtnNext").disabled = false;
+  setTimeout(()=>fb.scrollIntoView({behavior:"smooth", block:"nearest"}), 30);
 }
 function idUpdateStats(isCorrect){
   idStats.total++;
