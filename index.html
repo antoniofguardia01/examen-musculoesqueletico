@@ -948,8 +948,8 @@ function teoRenderQuestion(){
   if(type==="order") teoRenderOrder(body, data);
   if(type==="desarrollo") teoRenderDesarrollo(body, data);
 }
-function teoAddFeedback(container){
-  const fb = document.createElement("div"); fb.className="feedback"; fb.id="feedback";
+function teoAddFeedback(container, id){
+  const fb = document.createElement("div"); fb.className="feedback"; fb.id=id||"feedback";
   container.appendChild(fb); return fb;
 }
 
@@ -1399,7 +1399,7 @@ function idRenderQuestion(){
     btn.onclick = idCheckWrittenAnswer;
     wbox.appendChild(input); wbox.appendChild(btn);
     body.appendChild(wbox);
-    teoAddFeedback(body);
+    teoAddFeedback(body, "idFeedback");
     setTimeout(()=>input.focus(), 30);
   } else {
     const uniqueNames = [...new Set(diagram.points.map(pt=>pt.name).filter(nm=>nm!==point.name))];
@@ -1414,7 +1414,7 @@ function idRenderQuestion(){
       optBox.appendChild(div);
     });
     body.appendChild(optBox);
-    teoAddFeedback(body); // reuse same feedback style/id pattern
+    teoAddFeedback(body, "idFeedback"); // own id — avoids colliding with Teoría's #feedback
   }
 }
 
@@ -1429,7 +1429,7 @@ function idCheckWrittenAnswer(){
   input.disabled = true;
   document.getElementById("idWriteCheckBtn").disabled = true;
   input.classList.add(isCorrect ? "correct" : "incorrect");
-  const fb = document.getElementById("feedback");
+  const fb = document.getElementById("idFeedback");
   fb.className = "feedback " + (isCorrect?"ok":"bad") + " show";
   fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: <b>${correct}</b>`;
   idUpdateStats(isCorrect);
@@ -1447,7 +1447,7 @@ function idCheckAnswer(div, chosen, correct){
     if(c.dataset.name === correct) c.classList.add("correct");
     else if(c === div) c.classList.add("incorrect");
   });
-  const fb = document.getElementById("feedback");
+  const fb = document.getElementById("idFeedback");
   fb.className = "feedback " + (isCorrect?"ok":"bad") + " show";
   fb.innerHTML = isCorrect ? "<b>¡Correcto!</b>" : `<b>Incorrecto.</b> La respuesta correcta es: <b>${correct}</b>`;
   idUpdateStats(isCorrect);
