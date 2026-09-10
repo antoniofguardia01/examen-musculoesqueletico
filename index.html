@@ -129,6 +129,20 @@
   .id-opt.incorrect{ border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
   @media (max-width:480px){ .id-options{ grid-template-columns:1fr; } }
 
+  .exam-bar{ margin-bottom:14px; }
+  .btn-exam{ width:100%; padding:13px; border-radius:10px; border:1.5px dashed var(--gold); background:#FBF7EC; color:var(--navy-deep); font-weight:700; font-size:14px; cursor:pointer; transition:all .12s; }
+  .btn-exam:hover{ border-style:solid; background:#F5EDD9; }
+  .exam-progress{ display:none; align-items:center; gap:12px; margin-bottom:14px; }
+  .exam-progress-label{ font-size:12.5px; font-weight:700; color:var(--navy-deep); white-space:nowrap; }
+  .exam-progress-bar{ flex:1; height:8px; background:var(--line); border-radius:6px; overflow:hidden; }
+  .exam-progress-fill{ height:100%; background:var(--navy); width:0%; transition:width .25s; }
+  .exam-progress-exit{ padding:6px 12px; font-size:12px; border-radius:8px; border:1.5px solid var(--line); background:var(--paper); color:var(--ink-soft); cursor:pointer; white-space:nowrap; }
+  .exam-progress-exit:hover{ border-color:var(--bad); color:var(--bad); }
+  .exam-results{ text-align:center; padding:20px 10px 8px; }
+  .exam-results-score{ font-family:'Fraunces',serif; font-size:42px; font-weight:700; color:var(--navy-deep); }
+  .exam-results-pct{ font-size:15px; font-weight:600; color:var(--ink-soft); margin-top:2px; }
+  .exam-results-msg{ font-size:13.5px; color:var(--ink-soft); margin-top:10px; }
+  .exam-results-actions{ display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap; }
   .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
   .mode-btn{ flex:1; text-align:center; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); cursor:pointer; font-weight:600; font-size:13px; color:var(--ink-soft); transition:all .12s; }
   .mode-btn:hover{ border-color:var(--navy); }
@@ -204,6 +218,15 @@
       <div class="stat streak"><div class="n" id="teoStatStreak">0</div><div class="l">Racha</div></div>
     </div>
 
+    <div class="exam-bar" id="teoExamBar">
+      <button class="btn-exam" onclick="teoStartExam()">📝 Iniciar examen — 20 preguntas al azar</button>
+    </div>
+    <div class="exam-progress" id="teoExamProgress">
+      <span class="exam-progress-label" id="teoExamProgressLabel"></span>
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="teoExamProgressFill"></div></div>
+      <button class="exam-progress-exit" onclick="teoExitExam()">Salir del examen</button>
+    </div>
+
     <div class="filter-toggle" id="teoFilterToggle">
       <span>🎛️ Filtrar por tipo de pregunta y subtema</span>
       <span class="count" id="teoFilterCount"></span>
@@ -245,9 +268,18 @@
       <div class="stat streak"><div class="n" id="idStatStreak">0</div><div class="l">Racha</div></div>
     </div>
 
+    <div class="exam-bar" id="idExamBar">
+      <button class="btn-exam" onclick="idStartExam()">📝 Iniciar examen — 20 preguntas al azar</button>
+    </div>
+    <div class="exam-progress" id="idExamProgress">
+      <span class="exam-progress-label" id="idExamProgressLabel"></span>
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="idExamProgressFill"></div></div>
+      <button class="exam-progress-exit" onclick="idExitExam()">Salir del examen</button>
+    </div>
+
     <div class="note-box">Estas imágenes son las guías de trabajo en blanco y negro (huesos y músculos numerados) — igual a como aparecen en tu taller formativo. Elige cómo quieres practicar: seleccionando la respuesta o escribiéndola.</div>
 
-    <div class="mode-toggle">
+    <div class="mode-toggle" id="idModeToggle">
       <div class="mode-btn active" id="idModeSelect" onclick="idSetMode('select')">🖱️ Selección múltiple</div>
       <div class="mode-btn" id="idModeWrite" onclick="idSetMode('write')">✏️ Escribir respuesta</div>
     </div>
@@ -803,6 +835,63 @@ document.getElementById("teoBtnClearAll").addEventListener("click", ()=>{
 let teoQueues = {};
 let teoStats = {total:0, correct:0, streak:0};
 let teoCurrent = null;
+let teoExamMode = false, teoExamTotal = 20, teoExamIndex = 0, teoSavedFilters = null;
+
+function teoResetStatsDisplay(){
+  teoStats = {total:0, correct:0, streak:0};
+  document.getElementById("teoStatTotal").textContent = "0";
+  document.getElementById("teoStatCorrect").textContent = "0";
+  document.getElementById("teoStatStreak").textContent = "0";
+  document.getElementById("teoStatPct").textContent = "—";
+}
+function teoStartExam(){
+  teoExamMode = true;
+  teoExamIndex = 0;
+  teoQueues = {};
+  teoResetStatsDisplay();
+  if(!teoSavedFilters) teoSavedFilters = { types:new Set(teoFilters.types), topics:new Set(teoFilters.topics) };
+  teoFilters = { types:new Set(TYPES), topics:new Set(TOPICS.map(t=>t.id)) };
+  document.getElementById("teoExamBar").style.display = "none";
+  document.getElementById("teoFilterToggle").style.display = "none";
+  document.getElementById("teoFilterPanel").classList.remove("open");
+  document.getElementById("teoFilterToggle").classList.remove("open");
+  document.getElementById("teoExamProgress").style.display = "flex";
+  teoRenderQuestion();
+}
+function teoExitExam(){
+  teoExamMode = false;
+  teoExamIndex = 0;
+  teoQueues = {};
+  if(teoSavedFilters){ teoFilters = teoSavedFilters; teoSavedFilters = null; }
+  teoResetStatsDisplay();
+  document.getElementById("teoExamBar").style.display = "block";
+  document.getElementById("teoFilterToggle").style.display = "flex";
+  document.getElementById("teoExamProgress").style.display = "none";
+  teoRefreshChipStates(); teoUpdateFilterCount();
+  teoRenderQuestion();
+}
+function teoShowExamResults(){
+  document.getElementById("teoControls").style.display = "none";
+  document.getElementById("teoCardTag").textContent = "Examen finalizado";
+  document.getElementById("teoCardTopic").textContent = "";
+  document.getElementById("teoCardPts").textContent = "";
+  const pct = teoStats.total ? Math.round(100*teoStats.correct/teoStats.total) : 0;
+  const body = document.getElementById("teoCardBody");
+  body.innerHTML = `
+    <div class="exam-results">
+      <div class="exam-results-score">${teoStats.correct} / ${teoStats.total}</div>
+      <div class="exam-results-pct">${pct}% de aciertos</div>
+      <div class="exam-results-msg">${pct>=70?"¡Buen trabajo! Sigue así.":"Repasa los temas con más errores y vuelve a intentarlo."}</div>
+      <div class="exam-results-actions">
+        <button class="btn-primary" id="teoExamRetryBtn">🔁 Repetir examen</button>
+        <button class="btn-secondary" id="teoExamExitBtn2">Salir del examen</button>
+      </div>
+    </div>`;
+  document.getElementById("teoExamRetryBtn").onclick = teoStartExam;
+  document.getElementById("teoExamExitBtn2").onclick = teoExitExam;
+  document.getElementById("teoExamProgressLabel").textContent = "Examen completado";
+  document.getElementById("teoExamProgressFill").style.width = "100%";
+}
 
 function teoNextIndex(type){
   if(!teoQueues[type] || teoQueues[type].length===0){ teoQueues[type] = shuffle(teoFilteredIndices(type)); }
@@ -816,6 +905,7 @@ function teoPickType(){
 function teoTopicLabel(id){ const t = TOPICS.find(t=>t.id===id); return t?t.label:id; }
 
 function teoRenderQuestion(){
+  if(teoExamMode && teoExamIndex >= teoExamTotal){ teoShowExamResults(); return; }
   const emptyMsg = document.getElementById("teoFilterEmptyMsg");
   const type = teoPickType();
   if(type===null){
@@ -830,6 +920,12 @@ function teoRenderQuestion(){
   }
   emptyMsg.classList.remove("show");
   document.getElementById("teoControls").style.display = "flex";
+
+  if(teoExamMode){
+    teoExamIndex++;
+    document.getElementById("teoExamProgressLabel").textContent = `Pregunta ${teoExamIndex} de ${teoExamTotal}`;
+    document.getElementById("teoExamProgressFill").style.width = (teoExamIndex/teoExamTotal*100)+"%";
+  }
 
   const idx = teoNextIndex(type);
   teoCurrent = {type, idx, checked:false, revealed:false};
@@ -1126,6 +1222,64 @@ let idQueues = {};
 let idStats = {total:0, correct:0, streak:0};
 let idCurrent = null;
 let idMode = "select";
+let idExamMode = false, idExamTotal = 20, idExamIndex = 0, idSavedFiltersSet = null;
+
+function idResetStatsDisplay(){
+  idStats = {total:0, correct:0, streak:0};
+  document.getElementById("idStatTotal").textContent = "0";
+  document.getElementById("idStatCorrect").textContent = "0";
+  document.getElementById("idStatStreak").textContent = "0";
+  document.getElementById("idStatPct").textContent = "—";
+}
+function idStartExam(){
+  idExamMode = true;
+  idExamIndex = 0;
+  idQueues = {};
+  idResetStatsDisplay();
+  if(!idSavedFiltersSet) idSavedFiltersSet = new Set(idFiltersSet);
+  idFiltersSet = new Set(IDENTIFICACION_DIAGRAMS.map(d=>d.id));
+  document.getElementById("idExamBar").style.display = "none";
+  document.getElementById("idFilterToggle").style.display = "none";
+  document.getElementById("idFilterPanel").classList.remove("open");
+  document.getElementById("idFilterToggle").classList.remove("open");
+  document.getElementById("idModeToggle").style.display = "none";
+  document.getElementById("idExamProgress").style.display = "flex";
+  idRenderQuestion();
+}
+function idExitExam(){
+  idExamMode = false;
+  idExamIndex = 0;
+  idQueues = {};
+  if(idSavedFiltersSet){ idFiltersSet = idSavedFiltersSet; idSavedFiltersSet = null; }
+  idResetStatsDisplay();
+  document.getElementById("idExamBar").style.display = "block";
+  document.getElementById("idFilterToggle").style.display = "flex";
+  document.getElementById("idModeToggle").style.display = "flex";
+  document.getElementById("idExamProgress").style.display = "none";
+  idRefreshChipStates(); idUpdateFilterCount();
+  idRenderQuestion();
+}
+function idShowExamResults(){
+  document.getElementById("idControls").style.display = "none";
+  document.getElementById("idCardTag").textContent = "Examen finalizado";
+  document.getElementById("idCardTopic").textContent = "";
+  const pct = idStats.total ? Math.round(100*idStats.correct/idStats.total) : 0;
+  const body = document.getElementById("idCardBody");
+  body.innerHTML = `
+    <div class="exam-results">
+      <div class="exam-results-score">${idStats.correct} / ${idStats.total}</div>
+      <div class="exam-results-pct">${pct}% de aciertos</div>
+      <div class="exam-results-msg">${pct>=70?"¡Buen trabajo! Sigue así.":"Repasa los diagramas con más errores y vuelve a intentarlo."}</div>
+      <div class="exam-results-actions">
+        <button class="btn-primary" id="idExamRetryBtn">🔁 Repetir examen</button>
+        <button class="btn-secondary" id="idExamExitBtn2">Salir del examen</button>
+      </div>
+    </div>`;
+  document.getElementById("idExamRetryBtn").onclick = idStartExam;
+  document.getElementById("idExamExitBtn2").onclick = idExitExam;
+  document.getElementById("idExamProgressLabel").textContent = "Examen completado";
+  document.getElementById("idExamProgressFill").style.width = "100%";
+}
 
 function idSetMode(mode){
   if(idMode === mode) return;
@@ -1194,6 +1348,7 @@ function idPickDiagram(){
 }
 
 function idRenderQuestion(){
+  if(idExamMode && idExamIndex >= idExamTotal){ idShowExamResults(); return; }
   const emptyMsg = document.getElementById("idFilterEmptyMsg");
   const diagram = idPickDiagram();
   if(diagram===null){
@@ -1207,6 +1362,12 @@ function idRenderQuestion(){
   }
   emptyMsg.classList.remove("show");
   document.getElementById("idControls").style.display = "flex";
+
+  if(idExamMode){
+    idExamIndex++;
+    document.getElementById("idExamProgressLabel").textContent = `Pregunta ${idExamIndex} de ${idExamTotal}`;
+    document.getElementById("idExamProgressFill").style.width = (idExamIndex/idExamTotal*100)+"%";
+  }
 
   const point = idNextPoint(diagram);
   idCurrent = {diagram, point, checked:false};
