@@ -254,6 +254,7 @@
       </div>
       <div class="card-body" id="teoCardBody"></div>
       <div class="controls" id="teoControls">
+        <button class="btn-secondary" id="teoBtnPrev" disabled>← Pregunta anterior</button>
         <button class="btn-primary" id="teoBtnCheck">Comprobar</button>
         <button class="btn-secondary" id="teoBtnNext" disabled>Siguiente pregunta →</button>
       </div>
@@ -313,6 +314,7 @@
       </div>
       <div class="card-body" id="idCardBody"></div>
       <div class="controls" id="idControls">
+        <button class="btn-secondary" id="idBtnPrev" disabled>← Pregunta anterior</button>
         <button class="btn-secondary" id="idBtnNext" disabled>Siguiente pregunta →</button>
       </div>
     </div>
@@ -826,7 +828,7 @@ function teoUpdateFilterCount(){
   document.getElementById("teoFilterCount").textContent = n + (n===1?" pregunta disponible":" preguntas disponibles");
 }
 function teoOnFiltersChanged(){
-  teoRefreshChipStates(); teoUpdateFilterCount(); teoQueues = {}; teoRenderQuestion();
+  teoRefreshChipStates(); teoUpdateFilterCount(); teoQueues = {}; teoHistory = []; teoHistoryPos = -1; teoRenderQuestion();
 }
 document.getElementById("teoFilterToggle").addEventListener("click", ()=>{
   document.getElementById("teoFilterToggle").classList.toggle("open");
@@ -842,6 +844,8 @@ document.getElementById("teoBtnClearAll").addEventListener("click", ()=>{
 let teoQueues = {};
 let teoStats = {total:0, correct:0, streak:0};
 let teoCurrent = null;
+let teoHistory = [];
+let teoHistoryPos = -1;
 let teoExamMode = false, teoExamTotal = 20, teoExamIndex = 0, teoSavedFilters = null;
 
 function teoResetStatsDisplay(){
@@ -854,7 +858,7 @@ function teoResetStatsDisplay(){
 function teoStartExam(){
   teoExamMode = true;
   teoExamIndex = 0;
-  teoQueues = {};
+  teoQueues = {}; teoHistory = []; teoHistoryPos = -1;
   teoResetStatsDisplay();
   if(!teoSavedFilters) teoSavedFilters = { types:new Set(teoFilters.types), topics:new Set(teoFilters.topics) };
   teoFilters = { types:new Set(TYPES), topics:new Set(TOPICS.map(t=>t.id)) };
@@ -863,14 +867,16 @@ function teoStartExam(){
   document.getElementById("teoFilterPanel").classList.remove("open");
   document.getElementById("teoFilterToggle").classList.remove("open");
   document.getElementById("teoExamProgress").style.display = "flex";
+  document.getElementById("teoBtnPrev").style.display = "none";
   teoRenderQuestion();
 }
 function teoExitExam(){
   teoExamMode = false;
   teoExamIndex = 0;
-  teoQueues = {};
+  teoQueues = {}; teoHistory = []; teoHistoryPos = -1;
   if(teoSavedFilters){ teoFilters = teoSavedFilters; teoSavedFilters = null; }
   teoResetStatsDisplay();
+  document.getElementById("teoBtnPrev").style.display = "inline-block";
   document.getElementById("teoExamBar").style.display = "block";
   document.getElementById("teoFilterToggle").style.display = "flex";
   document.getElementById("teoExamProgress").style.display = "none";
@@ -935,6 +941,12 @@ function teoRenderQuestion(){
   }
 
   const idx = teoNextIndex(type);
+  teoHistory.push({type, idx});
+  teoHistoryPos = teoHistory.length - 1;
+  teoUpdateHistoryButtons();
+  teoDisplayQuestion(type, idx);
+}
+function teoDisplayQuestion(type, idx){
   teoCurrent = {type, idx, checked:false, revealed:false};
   const data = teoPoolFor(type)[idx];
 
@@ -954,6 +966,26 @@ function teoRenderQuestion(){
   if(type==="fill") teoRenderFill(body, data);
   if(type==="order") teoRenderOrder(body, data);
   if(type==="desarrollo") teoRenderDesarrollo(body, data);
+}
+function teoGoPrev(){
+  if(teoHistoryPos <= 0) return;
+  teoHistoryPos--;
+  teoUpdateHistoryButtons();
+  const {type, idx} = teoHistory[teoHistoryPos];
+  teoDisplayQuestion(type, idx);
+}
+function teoGoNext(){
+  if(teoHistoryPos < teoHistory.length - 1){
+    teoHistoryPos++;
+    teoUpdateHistoryButtons();
+    const {type, idx} = teoHistory[teoHistoryPos];
+    teoDisplayQuestion(type, idx);
+  } else {
+    teoRenderQuestion();
+  }
+}
+function teoUpdateHistoryButtons(){
+  document.getElementById("teoBtnPrev").disabled = teoHistoryPos <= 0;
 }
 function teoAddFeedback(container, id){
   const fb = document.createElement("div"); fb.className="feedback"; fb.id=id||"feedback";
@@ -1157,7 +1189,10 @@ document.getElementById("teoBtnCheck").addEventListener("click", ()=>{
   document.getElementById("teoBtnCheck").disabled = true;
   document.getElementById("teoBtnNext").disabled = false;
 });
-document.getElementById("teoBtnNext").addEventListener("click", teoRenderQuestion);
+document.getElementById("teoBtnNext").addEventListener("click", ()=>{
+  if(teoExamMode) teoRenderQuestion(); else teoGoNext();
+});
+document.getElementById("teoBtnPrev").addEventListener("click", teoGoPrev);
 
 teoBuildFilterChips();
 teoUpdateFilterCount();
@@ -1228,6 +1263,8 @@ let idFiltersSet = new Set(IDENTIFICACION_DIAGRAMS.map(d=>d.id));
 let idQueues = {};
 let idStats = {total:0, correct:0, streak:0};
 let idCurrent = null;
+let idHistory = [];
+let idHistoryPos = -1;
 let idMode = "select";
 let idOrderMode = "random";
 let idSeqQueue = [];
@@ -1244,7 +1281,7 @@ function idResetStatsDisplay(){
 function idStartExam(){
   idExamMode = true;
   idExamIndex = 0;
-  idQueues = {}; idSeqQueue = []; idSeqIndex = 0;
+  idQueues = {}; idSeqQueue = []; idSeqIndex = 0; idHistory = []; idHistoryPos = -1;
   idResetStatsDisplay();
   if(!idSavedFiltersSet) idSavedFiltersSet = new Set(idFiltersSet);
   idFiltersSet = new Set(IDENTIFICACION_DIAGRAMS.map(d=>d.id));
@@ -1256,13 +1293,14 @@ function idStartExam(){
   document.getElementById("idFilterToggle").classList.remove("open");
   document.getElementById("idModeToggle").style.display = "none";
   document.getElementById("idOrderToggle").style.display = "none";
+  document.getElementById("idBtnPrev").style.display = "none";
   document.getElementById("idExamProgress").style.display = "flex";
   idRenderQuestion();
 }
 function idExitExam(){
   idExamMode = false;
   idExamIndex = 0;
-  idQueues = {}; idSeqQueue = []; idSeqIndex = 0;
+  idQueues = {}; idSeqQueue = []; idSeqIndex = 0; idHistory = []; idHistoryPos = -1;
   if(idSavedFiltersSet){ idFiltersSet = idSavedFiltersSet; idSavedFiltersSet = null; }
   if(idSavedOrderMode!==null){
     idOrderMode = idSavedOrderMode; idSavedOrderMode = null;
@@ -1274,6 +1312,7 @@ function idExitExam(){
   document.getElementById("idFilterToggle").style.display = "flex";
   document.getElementById("idModeToggle").style.display = "flex";
   document.getElementById("idOrderToggle").style.display = "flex";
+  document.getElementById("idBtnPrev").style.display = "inline-block";
   document.getElementById("idExamProgress").style.display = "none";
   idRefreshChipStates(); idUpdateFilterCount();
   idRenderQuestion();
@@ -1366,7 +1405,7 @@ function idUpdateFilterCount(){
   document.getElementById("idFilterCount").textContent = n + (n===1?" punto disponible":" puntos disponibles");
 }
 function idOnFiltersChanged(){
-  idRefreshChipStates(); idUpdateFilterCount(); idQueues = {}; idSeqQueue = []; idSeqIndex = 0; idRenderQuestion();
+  idRefreshChipStates(); idUpdateFilterCount(); idQueues = {}; idSeqQueue = []; idSeqIndex = 0; idHistory = []; idHistoryPos = -1; idRenderQuestion();
 }
 document.getElementById("idFilterToggle").addEventListener("click", ()=>{
   document.getElementById("idFilterToggle").classList.toggle("open");
@@ -1421,6 +1460,32 @@ function idRenderQuestion(){
   }
 
   const point = idOrderMode === "sequential" ? seqEntry.point : idNextPoint(diagram);
+  idHistory.push({diagram, point});
+  idHistoryPos = idHistory.length - 1;
+  idUpdateHistoryButtons();
+  idDisplayQuestion(diagram, point);
+}
+function idGoPrev(){
+  if(idHistoryPos <= 0) return;
+  idHistoryPos--;
+  idUpdateHistoryButtons();
+  const {diagram, point} = idHistory[idHistoryPos];
+  idDisplayQuestion(diagram, point);
+}
+function idGoNext(){
+  if(idHistoryPos < idHistory.length - 1){
+    idHistoryPos++;
+    idUpdateHistoryButtons();
+    const {diagram, point} = idHistory[idHistoryPos];
+    idDisplayQuestion(diagram, point);
+  } else {
+    idRenderQuestion();
+  }
+}
+function idUpdateHistoryButtons(){
+  document.getElementById("idBtnPrev").disabled = idHistoryPos <= 0;
+}
+function idDisplayQuestion(diagram, point){
   idCurrent = {diagram, point, checked:false};
 
   document.getElementById("idCardTag").textContent = "Identificación";
@@ -1513,7 +1578,10 @@ function idUpdateStats(isCorrect){
   document.getElementById("idStatStreak").textContent = idStats.streak;
   document.getElementById("idStatPct").textContent = idStats.total? Math.round(100*idStats.correct/idStats.total)+"%" : "—";
 }
-document.getElementById("idBtnNext").addEventListener("click", idRenderQuestion);
+document.getElementById("idBtnNext").addEventListener("click", ()=>{
+  if(idExamMode) idRenderQuestion(); else idGoNext();
+});
+document.getElementById("idBtnPrev").addEventListener("click", idGoPrev);
 
 idBuildFilterChips();
 idUpdateFilterCount();
