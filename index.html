@@ -18,7 +18,8 @@
     --radius:10px;
   }
   *{box-sizing:border-box;}
-  body{ margin:0; background:radial-gradient(1200px 600px at 50% -10%, #FBF8EF 0%, var(--cream) 55%); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  body{ margin:0; background:radial-gradient(1200px 600px at 50% -10%, #FBF8EF 0%, var(--cream) 55%); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; position:relative; }
+  body::before{ content:""; position:fixed; inset:0; background-image:url("assets/beaver-bg.jpg"); background-repeat:repeat; background-size:56px 56px; opacity:.05; z-index:-1; pointer-events:none; }
   .wrap{ max-width:860px; margin:0 auto; padding:28px 20px 80px; }
 
   .hero-banner{ margin-bottom:22px; border-radius:14px; overflow:hidden; border:1px solid var(--line); box-shadow:0 8px 28px -12px rgba(31,76,43,0.35); }
@@ -143,6 +144,7 @@
   .exam-results-pct{ font-size:15px; font-weight:600; color:var(--ink-soft); margin-top:2px; }
   .exam-results-msg{ font-size:13.5px; color:var(--ink-soft); margin-top:10px; }
   .exam-results-actions{ display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap; }
+  .device-counter{ position:fixed; bottom:10px; right:12px; font-size:10.5px; font-family:'Inter',sans-serif; color:var(--ink-soft); opacity:.5; background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--line); z-index:50; pointer-events:none; letter-spacing:.02em; transition:opacity .3s; }
   .mode-toggle{ display:flex; gap:8px; margin-bottom:14px; }
   .mode-btn{ flex:1; text-align:center; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); cursor:pointer; font-weight:600; font-size:13px; color:var(--ink-soft); transition:all .12s; }
   .mode-btn:hover{ border-color:var(--navy); }
@@ -1467,6 +1469,27 @@ document.getElementById("idBtnNext").addEventListener("click", idRenderQuestion)
 idBuildFilterChips();
 idUpdateFilterCount();
 idRenderQuestion();
+
+/* ======================================================================
+   CONTADOR DE DISPOSITIVOS (discreto, esquina inferior derecha)
+   ====================================================================== */
+(function(){
+  const NS = "examen-smes-sanagustin-cea9f2";
+  const KEY = "devices";
+  const badge = document.createElement("div");
+  badge.className = "device-counter";
+  badge.textContent = "…";
+  document.body.appendChild(badge);
+  let alreadyCounted = false;
+  try{ alreadyCounted = localStorage.getItem("smes_device_counted") === "1"; }catch(e){}
+  const url = alreadyCounted
+    ? `https://abacus.jasoncameron.dev/get/${NS}/${KEY}`
+    : `https://abacus.jasoncameron.dev/hit/${NS}/${KEY}`;
+  fetch(url).then(r=>r.json()).then(data=>{
+    if(!alreadyCounted){ try{ localStorage.setItem("smes_device_counted","1"); }catch(e){} }
+    badge.textContent = `👣 ${data.value} dispositivos`;
+  }).catch(()=>{ badge.remove(); });
+})();
 </script>
 </body>
 </html>
