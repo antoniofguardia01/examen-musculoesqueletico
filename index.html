@@ -286,6 +286,11 @@
       <div class="mode-btn" id="idModeWrite" onclick="idSetMode('write')">✏️ Escribir respuesta</div>
     </div>
 
+    <div class="mode-toggle" id="idOrderToggle">
+      <div class="mode-btn active" id="idOrderRandom" onclick="idSetOrderMode('random')">🔀 Al azar</div>
+      <div class="mode-btn" id="idOrderSequential" onclick="idSetOrderMode('sequential')">📋 En orden</div>
+    </div>
+
     <div class="filter-toggle" id="idFilterToggle">
       <span>🎛️ Filtrar por diagrama</span>
       <span class="count" id="idFilterCount"></span>
@@ -1224,7 +1229,10 @@ let idQueues = {};
 let idStats = {total:0, correct:0, streak:0};
 let idCurrent = null;
 let idMode = "select";
-let idExamMode = false, idExamTotal = 20, idExamIndex = 0, idSavedFiltersSet = null;
+let idOrderMode = "random";
+let idSeqQueue = [];
+let idSeqIndex = 0;
+let idExamMode = false, idExamTotal = 20, idExamIndex = 0, idSavedFiltersSet = null, idSavedOrderMode = null;
 
 function idResetStatsDisplay(){
   idStats = {total:0, correct:0, streak:0};
@@ -1236,27 +1244,36 @@ function idResetStatsDisplay(){
 function idStartExam(){
   idExamMode = true;
   idExamIndex = 0;
-  idQueues = {};
+  idQueues = {}; idSeqQueue = []; idSeqIndex = 0;
   idResetStatsDisplay();
   if(!idSavedFiltersSet) idSavedFiltersSet = new Set(idFiltersSet);
   idFiltersSet = new Set(IDENTIFICACION_DIAGRAMS.map(d=>d.id));
+  if(idSavedOrderMode===null) idSavedOrderMode = idOrderMode;
+  idOrderMode = "random";
   document.getElementById("idExamBar").style.display = "none";
   document.getElementById("idFilterToggle").style.display = "none";
   document.getElementById("idFilterPanel").classList.remove("open");
   document.getElementById("idFilterToggle").classList.remove("open");
   document.getElementById("idModeToggle").style.display = "none";
+  document.getElementById("idOrderToggle").style.display = "none";
   document.getElementById("idExamProgress").style.display = "flex";
   idRenderQuestion();
 }
 function idExitExam(){
   idExamMode = false;
   idExamIndex = 0;
-  idQueues = {};
+  idQueues = {}; idSeqQueue = []; idSeqIndex = 0;
   if(idSavedFiltersSet){ idFiltersSet = idSavedFiltersSet; idSavedFiltersSet = null; }
+  if(idSavedOrderMode!==null){
+    idOrderMode = idSavedOrderMode; idSavedOrderMode = null;
+    document.getElementById("idOrderRandom").classList.toggle("active", idOrderMode==="random");
+    document.getElementById("idOrderSequential").classList.toggle("active", idOrderMode==="sequential");
+  }
   idResetStatsDisplay();
   document.getElementById("idExamBar").style.display = "block";
   document.getElementById("idFilterToggle").style.display = "flex";
   document.getElementById("idModeToggle").style.display = "flex";
+  document.getElementById("idOrderToggle").style.display = "flex";
   document.getElementById("idExamProgress").style.display = "none";
   idRefreshChipStates(); idUpdateFilterCount();
   idRenderQuestion();
@@ -1291,6 +1308,32 @@ function idSetMode(mode){
   idRenderQuestion();
 }
 
+function idSetOrderMode(mode){
+  if(idOrderMode === mode) return;
+  idOrderMode = mode;
+  document.getElementById("idOrderRandom").classList.toggle("active", mode==="random");
+  document.getElementById("idOrderSequential").classList.toggle("active", mode==="sequential");
+  idSeqQueue = []; idSeqIndex = 0;
+  idRenderQuestion();
+}
+
+function idBuildSeqQueue(){
+  idSeqQueue = [];
+  idActiveDiagrams().forEach(d=>{
+    d.points.forEach(pt=> idSeqQueue.push({diagram:d, point:pt}));
+  });
+  idSeqIndex = 0;
+}
+
+function idNextSequential(){
+  if(idSeqQueue.length===0) idBuildSeqQueue();
+  if(idSeqQueue.length===0) return null;
+  if(idSeqIndex >= idSeqQueue.length) idSeqIndex = 0;
+  const entry = idSeqQueue[idSeqIndex];
+  idSeqIndex++;
+  return entry;
+}
+
 function idNormalize(s){
   return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9\s]/g,"").trim().replace(/\s+/g," ");
 }
@@ -1323,7 +1366,7 @@ function idUpdateFilterCount(){
   document.getElementById("idFilterCount").textContent = n + (n===1?" punto disponible":" puntos disponibles");
 }
 function idOnFiltersChanged(){
-  idRefreshChipStates(); idUpdateFilterCount(); idQueues = {}; idRenderQuestion();
+  idRefreshChipStates(); idUpdateFilterCount(); idQueues = {}; idSeqQueue = []; idSeqIndex = 0; idRenderQuestion();
 }
 document.getElementById("idFilterToggle").addEventListener("click", ()=>{
   document.getElementById("idFilterToggle").classList.toggle("open");
@@ -1352,7 +1395,13 @@ function idPickDiagram(){
 function idRenderQuestion(){
   if(idExamMode && idExamIndex >= idExamTotal){ idShowExamResults(); return; }
   const emptyMsg = document.getElementById("idFilterEmptyMsg");
-  const diagram = idPickDiagram();
+  let diagram = null, seqEntry = null;
+  if(idOrderMode === "sequential"){
+    seqEntry = idNextSequential();
+    if(seqEntry) diagram = seqEntry.diagram;
+  } else {
+    diagram = idPickDiagram();
+  }
   if(diagram===null){
     emptyMsg.classList.add("show");
     document.getElementById("idCardTag").textContent = "Sin resultados";
@@ -1371,7 +1420,7 @@ function idRenderQuestion(){
     document.getElementById("idExamProgressFill").style.width = (idExamIndex/idExamTotal*100)+"%";
   }
 
-  const point = idNextPoint(diagram);
+  const point = idOrderMode === "sequential" ? seqEntry.point : idNextPoint(diagram);
   idCurrent = {diagram, point, checked:false};
 
   document.getElementById("idCardTag").textContent = "Identificación";
