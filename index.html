@@ -1572,7 +1572,6 @@ function idDisplayQuestion(diagram, point){
     const input = document.createElement("input");
     input.type = "text"; input.id = "idWriteInput"; input.className = "id-write-input";
     input.placeholder = "Escribe el nombre de la estructura..."; input.autocomplete = "off"; input.autocapitalize = "off"; input.spellcheck = false;
-    input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); idCheckWrittenAnswer(); } });
     const btn = document.createElement("button"); btn.className = "id-write-check"; btn.id = "idWriteCheckBtn"; btn.textContent = "Comprobar";
     btn.onclick = idCheckWrittenAnswer;
     wbox.appendChild(input); wbox.appendChild(btn);
@@ -1644,6 +1643,15 @@ document.getElementById("idBtnNext").addEventListener("click", ()=>{
   if(idExamMode) idRenderQuestion(); else idGoNext();
 });
 document.getElementById("idBtnPrev").addEventListener("click", idGoPrev);
+document.addEventListener("keydown", e=>{
+  if(e.key !== "Enter") return;
+  if(idMode !== "write") return;
+  if(!document.getElementById("sectionIdent").classList.contains("active")) return;
+  if(!idCurrent) return;
+  e.preventDefault();
+  if(idCurrent.checked){ if(idExamMode) idRenderQuestion(); else idGoNext(); }
+  else idCheckWrittenAnswer();
+});
 
 idBuildFilterChips();
 idUpdateFilterCount();
