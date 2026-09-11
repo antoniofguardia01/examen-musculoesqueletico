@@ -244,6 +244,11 @@
       <button class="exam-progress-exit" onclick="teoExitExam()">Salir del examen</button>
     </div>
 
+    <div class="mode-toggle" id="teoOrderToggle">
+      <div class="mode-btn active" id="teoOrderRandom" onclick="teoSetOrderMode('random')"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 7h3.2a3 3 0 0 1 2.4 1.2l5.5 7.6A3 3 0 0 0 17.5 17H20"/><path d="M4 17h3.2a3 3 0 0 0 2.4-1.2l.7-1"/><path d="M17.5 4.5 20 7l-2.5 2.5"/><path d="M17.5 14.5 20 17l-2.5 2.5"/></svg>Al azar</div>
+      <div class="mode-btn" id="teoOrderSequential" onclick="teoSetOrderMode('sequential')"><svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="15" width="4" height="5" rx="1"/><rect x="10" y="10" width="4" height="10" rx="1"/><rect x="16" y="5" width="4" height="15" rx="1"/></svg>En orden</div>
+    </div>
+
     <div class="filter-toggle" id="teoFilterToggle">
       <span><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2"/></svg>Filtrar por tipo de pregunta y subtema</span>
       <span class="count" id="teoFilterCount"></span>
@@ -843,7 +848,7 @@ function teoUpdateFilterCount(){
   document.getElementById("teoFilterCount").textContent = n + (n===1?" pregunta disponible":" preguntas disponibles");
 }
 function teoOnFiltersChanged(){
-  teoRefreshChipStates(); teoUpdateFilterCount(); teoQueues = {}; teoHistory = []; teoHistoryPos = -1; teoRenderQuestion();
+  teoRefreshChipStates(); teoUpdateFilterCount(); teoQueues = {}; teoHistory = []; teoHistoryPos = -1; teoSeqQueue = []; teoSeqIndex = 0; teoRenderQuestion();
 }
 document.getElementById("teoFilterToggle").addEventListener("click", ()=>{
   document.getElementById("teoFilterToggle").classList.toggle("open");
@@ -861,7 +866,10 @@ let teoStats = {total:0, correct:0, streak:0};
 let teoCurrent = null;
 let teoHistory = [];
 let teoHistoryPos = -1;
-let teoExamMode = false, teoExamTotal = 20, teoExamIndex = 0, teoSavedFilters = null;
+let teoOrderMode = "random";
+let teoSeqQueue = [];
+let teoSeqIndex = 0;
+let teoExamMode = false, teoExamTotal = 20, teoExamIndex = 0, teoSavedFilters = null, teoSavedOrderMode = null;
 
 function teoResetStatsDisplay(){
   teoStats = {total:0, correct:0, streak:0};
@@ -873,14 +881,17 @@ function teoResetStatsDisplay(){
 function teoStartExam(){
   teoExamMode = true;
   teoExamIndex = 0;
-  teoQueues = {}; teoHistory = []; teoHistoryPos = -1;
+  teoQueues = {}; teoHistory = []; teoHistoryPos = -1; teoSeqQueue = []; teoSeqIndex = 0;
   teoResetStatsDisplay();
   if(!teoSavedFilters) teoSavedFilters = { types:new Set(teoFilters.types), topics:new Set(teoFilters.topics) };
   teoFilters = { types:new Set(TYPES), topics:new Set(TOPICS.map(t=>t.id)) };
+  if(teoSavedOrderMode===null) teoSavedOrderMode = teoOrderMode;
+  teoOrderMode = "random";
   document.getElementById("teoExamBar").style.display = "none";
   document.getElementById("teoFilterToggle").style.display = "none";
   document.getElementById("teoFilterPanel").classList.remove("open");
   document.getElementById("teoFilterToggle").classList.remove("open");
+  document.getElementById("teoOrderToggle").style.display = "none";
   document.getElementById("teoExamProgress").style.display = "flex";
   document.getElementById("teoBtnPrev").style.display = "none";
   teoRenderQuestion();
@@ -888,12 +899,18 @@ function teoStartExam(){
 function teoExitExam(){
   teoExamMode = false;
   teoExamIndex = 0;
-  teoQueues = {}; teoHistory = []; teoHistoryPos = -1;
+  teoQueues = {}; teoHistory = []; teoHistoryPos = -1; teoSeqQueue = []; teoSeqIndex = 0;
   if(teoSavedFilters){ teoFilters = teoSavedFilters; teoSavedFilters = null; }
+  if(teoSavedOrderMode!==null){
+    teoOrderMode = teoSavedOrderMode; teoSavedOrderMode = null;
+    document.getElementById("teoOrderRandom").classList.toggle("active", teoOrderMode==="random");
+    document.getElementById("teoOrderSequential").classList.toggle("active", teoOrderMode==="sequential");
+  }
   teoResetStatsDisplay();
   document.getElementById("teoBtnPrev").style.display = "inline-block";
   document.getElementById("teoExamBar").style.display = "block";
   document.getElementById("teoFilterToggle").style.display = "flex";
+  document.getElementById("teoOrderToggle").style.display = "flex";
   document.getElementById("teoExamProgress").style.display = "none";
   teoRefreshChipStates(); teoUpdateFilterCount();
   teoRenderQuestion();
@@ -932,10 +949,40 @@ function teoPickType(){
 }
 function teoTopicLabel(id){ const t = TOPICS.find(t=>t.id===id); return t?t.label:id; }
 
+function teoSetOrderMode(mode){
+  if(teoOrderMode === mode) return;
+  teoOrderMode = mode;
+  document.getElementById("teoOrderRandom").classList.toggle("active", mode==="random");
+  document.getElementById("teoOrderSequential").classList.toggle("active", mode==="sequential");
+  teoSeqQueue = []; teoSeqIndex = 0;
+  teoRenderQuestion();
+}
+function teoBuildSeqQueue(){
+  teoSeqQueue = [];
+  teoAvailableTypes().forEach(t=>{
+    teoFilteredIndices(t).forEach(idx=> teoSeqQueue.push({type:t, idx}));
+  });
+  teoSeqIndex = 0;
+}
+function teoNextSequential(){
+  if(teoSeqQueue.length===0) teoBuildSeqQueue();
+  if(teoSeqQueue.length===0) return null;
+  if(teoSeqIndex >= teoSeqQueue.length) teoSeqIndex = 0;
+  const entry = teoSeqQueue[teoSeqIndex];
+  teoSeqIndex++;
+  return entry;
+}
+
 function teoRenderQuestion(){
   if(teoExamMode && teoExamIndex >= teoExamTotal){ teoShowExamResults(); return; }
   const emptyMsg = document.getElementById("teoFilterEmptyMsg");
-  const type = teoPickType();
+  let type = null, seqEntry = null;
+  if(teoOrderMode === "sequential"){
+    seqEntry = teoNextSequential();
+    if(seqEntry) type = seqEntry.type;
+  } else {
+    type = teoPickType();
+  }
   if(type===null){
     emptyMsg.classList.add("show");
     document.getElementById("teoCardTag").textContent = "Sin resultados";
@@ -955,7 +1002,7 @@ function teoRenderQuestion(){
     document.getElementById("teoExamProgressFill").style.width = (teoExamIndex/teoExamTotal*100)+"%";
   }
 
-  const idx = teoNextIndex(type);
+  const idx = teoOrderMode === "sequential" ? seqEntry.idx : teoNextIndex(type);
   teoHistory.push({type, idx});
   teoHistoryPos = teoHistory.length - 1;
   teoUpdateHistoryButtons();
