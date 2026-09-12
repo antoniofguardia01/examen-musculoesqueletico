@@ -32,8 +32,9 @@ Used standalone by the student and classmates, on their own devices, in both sho
 ## Brand Commitments
 
 - Product name: "Sistema Músculo-Esquelético — Práctica Infinita".
-- Institutional credit in the footer: "Colegio San Agustín de Panamá".
+- No institutional branding on the page (as of 2026-09): the earlier "Colegio San Agustín de Panamá" credit (footer + hero) was removed at the user's explicit request. Do not reintroduce it without being asked.
 - Visual identity (as of 2026-09): a dark "radiograph / scan room" system — near-black film-blue ground, a single cyan-phosphor accent, condensed display type, mono data labels. Replaces the earlier cream/green heraldic-seal identity at the user's explicit request; see DESIGN.md.
+- A full-viewport landing "plate" opens the page (headline, real question-bank stats, CTA) and anchor-scrolls into the practice tool below; it must not gate or hide the practice content behind a load/click step — everything stays on one page (zero-friction principle still holds).
 - Question wording and diagram content are transcribed from the student's real class materials; never invent or alter their substance.
 
 ## Evidence on Hand
