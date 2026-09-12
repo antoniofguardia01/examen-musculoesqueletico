@@ -69,7 +69,7 @@ Glow is spent deliberately in exactly two places — the scan-sweep line and the
 
 ## Provenance
 
-No produced raster assets in this pass — the whole redesign is CSS/SVG/type; the two pre-existing raster assets (`assets/header-banner.png`, `assets/beaver-bg.jpg`) are no longer referenced by the page and were left in the repo rather than deleted.
+No produced raster assets in this pass — the whole redesign is CSS/SVG/type. `assets/header-banner.png` is unused and stays in the repo rather than being deleted. `assets/beaver-bg.jpg` (a pre-existing mascot easter egg) is back in service as a `body::before` tiled background — `grayscale(1) brightness(.75) contrast(1.15)` at `opacity:.05` so it reads as a barely-there texture behind the cards rather than a photo, matching how subtle it was in the earlier cream theme.
 
 ## Open items
 
