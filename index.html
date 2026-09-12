@@ -228,9 +228,50 @@
     button{flex:1;}
     .top-tab{ font-size:12.5px; padding:10px 6px; }
   }
+
+  /* Ambient specimens drifting in the empty margins — one atmospheric
+     motif in four quiet phases, not four separate effects. Only shown
+     where real empty space exists (wide viewports); never competes with
+     content or the card's own scan-sweep signature. */
+  @keyframes bgDrift{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-16px) rotate(-4deg); } }
+  .bg-objects{ pointer-events:none; }
+  .bg-objects .bg-object{ position:fixed; z-index:-1; color:var(--line-bright); opacity:.2; animation:bgDrift 11s ease-in-out infinite; }
+  .bg-objects .bone{ top:15%; left:6%; width:58px; }
+  .bg-objects .vertebra{ top:58%; left:5%; width:32px; animation-duration:9s; animation-delay:-2s; }
+  .bg-objects .fiber{ top:26%; right:6%; width:70px; color:var(--accent-dim); opacity:.16; animation-duration:13s; animation-delay:-5s; }
+  .bg-objects .reticle{ top:68%; right:5%; width:42px; animation-duration:15s; animation-delay:-8s; }
+  @media (max-width:1100px){ .bg-objects{ display:none; } }
+  @media (prefers-reduced-motion:reduce){ .bg-objects .bg-object{ animation:none; } }
 </style>
 </head>
 <body>
+<div class="bg-objects" aria-hidden="true">
+  <svg class="bg-object bone" viewBox="0 0 44 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+    <line x1="12" y1="10" x2="32" y2="10"/>
+    <circle cx="9" cy="6" r="3"/>
+    <circle cx="9" cy="14" r="3"/>
+    <circle cx="35" cy="6" r="3"/>
+    <circle cx="35" cy="14" r="3"/>
+  </svg>
+  <svg class="bg-object vertebra" viewBox="0 0 20 44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="2" width="12" height="8" rx="3"/>
+    <line x1="10" y1="10" x2="10" y2="17"/>
+    <rect x="4" y="17" width="12" height="8" rx="3"/>
+    <line x1="10" y1="25" x2="10" y2="32"/>
+    <rect x="4" y="32" width="12" height="8" rx="3"/>
+  </svg>
+  <svg class="bg-object fiber" viewBox="0 0 60 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 10Q9 0 16 10T30 10T44 10T58 10"/>
+  </svg>
+  <svg class="bg-object reticle" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="16"/>
+    <circle cx="24" cy="24" r="2.5" fill="currentColor"/>
+    <line x1="24" y1="4" x2="24" y2="11"/>
+    <line x1="24" y1="37" x2="24" y2="44"/>
+    <line x1="4" y1="24" x2="11" y2="24"/>
+    <line x1="37" y1="24" x2="44" y2="24"/>
+  </svg>
+</div>
 <div class="wrap">
 
   <div class="hero">
